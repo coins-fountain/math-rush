@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../utils/ad_helper.dart';
@@ -9,9 +10,45 @@ class AdService extends GetxService {
 
   bool get hasRevived => _hasRevived;
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   Future<AdService> init() async {
-    await MobileAds.instance.initialize();
-    return this;
+    final completer = Completer<AdService>();
+    final params = ConsentRequestParameters();
+
+    ConsentInformation.instance.requestConsentInfoUpdate(
+      params,
+      () async {
+        if (await ConsentInformation.instance.isConsentFormAvailable()) {
+          await _loadAndShowConsentFormIfRequired();
+          _isInitialized = true;
+          completer.complete(this);
+        } else {
+          await MobileAds.instance.initialize();
+          _isInitialized = true;
+          completer.complete(this);
+        }
+      },
+      (FormError error) async {
+        await MobileAds.instance.initialize();
+        _isInitialized = true;
+        completer.complete(this);
+      },
+    );
+
+    return completer.future;
+  }
+
+  Future<void> _loadAndShowConsentFormIfRequired() async {
+    final completer = Completer<void>();
+    await ConsentForm.loadAndShowConsentFormIfRequired((
+      FormError? formError,
+    ) async {
+      await MobileAds.instance.initialize();
+      completer.complete();
+    });
+    return completer.future;
   }
 
   void resetReviveStatus() {
