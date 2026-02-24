@@ -1,55 +1,18 @@
-import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import '../utils/ad_helper.dart';
+import 'package:math_rush/core/utils/ad_helper.dart';
+import 'package:math_rush/core/services/consent_service.dart';
 
 class AdService extends GetxService {
+  InterstitialAd? _interstitialAd;
+  RewardedAd? _rewardedAd;
+
   DateTime? _lastInterstitialTime;
+  final Duration interstitialCooldown = const Duration(minutes: 2);
+
   bool _hasRevived = false;
-  final Duration adCooldown = const Duration(minutes: 1);
-
   bool get hasRevived => _hasRevived;
-
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
-
-  Future<AdService> init() async {
-    final completer = Completer<AdService>();
-    final params = ConsentRequestParameters();
-
-    ConsentInformation.instance.requestConsentInfoUpdate(
-      params,
-      () async {
-        if (await ConsentInformation.instance.isConsentFormAvailable()) {
-          await _loadAndShowConsentFormIfRequired();
-          _isInitialized = true;
-          completer.complete(this);
-        } else {
-          await MobileAds.instance.initialize();
-          _isInitialized = true;
-          completer.complete(this);
-        }
-      },
-      (FormError error) async {
-        await MobileAds.instance.initialize();
-        _isInitialized = true;
-        completer.complete(this);
-      },
-    );
-
-    return completer.future;
-  }
-
-  Future<void> _loadAndShowConsentFormIfRequired() async {
-    final completer = Completer<void>();
-    await ConsentForm.loadAndShowConsentFormIfRequired((
-      FormError? formError,
-    ) async {
-      await MobileAds.instance.initialize();
-      completer.complete();
-    });
-    return completer.future;
-  }
 
   void resetReviveStatus() {
     _hasRevived = false;
@@ -59,72 +22,125 @@ class AdService extends GetxService {
     _hasRevived = true;
   }
 
-  void showReviveAd({required Function(bool rewardGranted) onClosed}) {
-    RewardedAd.load(
-      adUnitId: AdHelper.rewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          bool rewardEarned = false;
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              onClosed(rewardEarned);
-            },
-            onAdFailedToShowFullScreenContent: (ad, err) {
-              ad.dispose();
-              onClosed(false);
-            },
-          );
+  Future<AdService> init() async {
+    final consentService = Get.find<ConsentService>();
 
-          ad.show(
-            onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-              rewardEarned = true;
-            },
-          );
-        },
-        onAdFailedToLoad: (err) {
-          onClosed(false);
-        },
-      ),
-    );
-  }
-
-  void showGameOverAd({required Function onAdClosed}) {
-    final now = DateTime.now();
-
-    if (_lastInterstitialTime != null &&
-        now.difference(_lastInterstitialTime!) < adCooldown) {
-      onAdClosed();
-      return;
+    if (await consentService.canRequestAds) {
+      await MobileAds.instance.initialize();
+      _loadInterstitialAd();
+      _loadRewardedAd();
+    } else {
+      debugPrint('AdService: Consent not granted. Ads will not load.');
     }
 
+    return this;
+  }
+
+  // INTERSTITIAL AD
+
+  void _loadInterstitialAd() {
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              onAdClosed();
-            },
-            onAdFailedToShowFullScreenContent: (ad, err) {
-              ad.dispose();
-              onAdClosed();
-            },
-          );
-          ad.show();
-          _lastInterstitialTime = DateTime.now();
-        },
+        onAdLoaded: (ad) => _interstitialAd = ad,
         onAdFailedToLoad: (err) {
-          onAdClosed();
+          debugPrint('Interstitial failed to load: $err');
+          _interstitialAd = null;
         },
       ),
     );
   }
 
-  BannerAd? createBannerAd({
+  void showInterstitialAd({VoidCallback? onAdClosed}) {
+    final now = DateTime.now();
+
+    if (_lastInterstitialTime != null &&
+        now.difference(_lastInterstitialTime!) < interstitialCooldown) {
+      debugPrint('AdService: Interstitial in cooldown. Skipping.');
+      onAdClosed?.call();
+      return;
+    }
+
+    if (_interstitialAd == null) {
+      debugPrint('AdService: Ad not ready yet.');
+      _loadInterstitialAd();
+      onAdClosed?.call();
+      return;
+    }
+
+    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _lastInterstitialTime = DateTime.now();
+        _loadInterstitialAd();
+        onAdClosed?.call();
+      },
+      onAdFailedToShowFullScreenContent: (ad, err) {
+        ad.dispose();
+        _loadInterstitialAd();
+        onAdClosed?.call();
+      },
+    );
+
+    _interstitialAd!.show();
+    _interstitialAd = null;
+  }
+
+  // REWARDED AD
+
+  void _loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: AdHelper.rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) => _rewardedAd = ad,
+        onAdFailedToLoad: (err) {
+          debugPrint('Rewarded failed to load: $err');
+          _rewardedAd = null;
+        },
+      ),
+    );
+  }
+
+  void showRewardedAd({
+    required Function onUserEarnedReward,
+    Function? onAdDismissed,
+  }) {
+    if (_rewardedAd == null) {
+      debugPrint('AdService: Rewarded ad not ready.');
+      _loadRewardedAd();
+      onAdDismissed?.call();
+      return;
+    }
+
+    bool hasReward = false;
+
+    _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadRewardedAd();
+        if (!hasReward) onAdDismissed?.call();
+      },
+      onAdFailedToShowFullScreenContent: (ad, err) {
+        ad.dispose();
+        _loadRewardedAd();
+        onAdDismissed?.call();
+      },
+    );
+
+    _rewardedAd!.show(
+      onUserEarnedReward: (ad, reward) {
+        hasReward = true;
+        onUserEarnedReward();
+      },
+    );
+    _rewardedAd = null;
+  }
+
+  // BANNER AD
+
+  BannerAd createBannerAd({
     required Function() onAdLoaded,
     required Function() onAdFailedToLoad,
   }) {

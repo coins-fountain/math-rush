@@ -138,21 +138,21 @@ class GameController extends GetxController {
       homeCtrl.updateHighScore(score.value);
     }
 
-    _adService.showGameOverAd(onAdClosed: () {});
+    _adService.showInterstitialAd(onAdClosed: () {});
   }
 
   void watchReviveAd() {
     if (isWatchingAd.value) return;
     isWatchingAd.value = true;
 
-    _adService.showReviveAd(
-      onClosed: (rewardGranted) {
+    _adService.showRewardedAd(
+      onUserEarnedReward: () {
         isWatchingAd.value = false;
-        if (rewardGranted) {
-          resumeGameAfterRevive();
-        } else {
-          _finalizeGameOver();
-        }
+        resumeGameAfterRevive();
+      },
+      onAdDismissed: () {
+        isWatchingAd.value = false;
+        _finalizeGameOver();
       },
     );
   }
