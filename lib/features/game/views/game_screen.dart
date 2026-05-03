@@ -97,11 +97,13 @@ class GameScreen extends GetView<GameController> {
                           AnswerButton(
                             label: question.leftButtonText,
                             onTap: () => controller.validateAnswer(true),
+                            isLeft: true,
                           ),
                           const SizedBox(width: 16),
                           AnswerButton(
                             label: question.rightButtonText,
                             onTap: () => controller.validateAnswer(false),
+                            isLeft: false,
                           ),
                         ],
                       );

@@ -6,6 +6,8 @@ import '../../../../data/models/question_model.dart';
 import '../../home/controllers/home_controller.dart';
 import '../logic/question_generator.dart';
 import '../../../../core/services/ad_service.dart';
+import '../../../../core/services/haptic_service.dart';
+import '../models/answer_result.dart';
 
 class GameController extends GetxController {
   final AdService _adService = Get.find<AdService>();
@@ -21,6 +23,10 @@ class GameController extends GetxController {
   final RxBool isNewHighScore = false.obs;
   final RxInt startCountdown = 0.obs;
   final RxBool isPaused = false.obs;
+
+  final Rx<AnswerResult?> lastAnswerResult = Rx<AnswerResult?>(null);
+  final RxnBool lastClickWasLeft = RxnBool(null);
+  final RxBool showLevelUp = false.obs;
 
   Timer? _rushTimer;
   double _currentMaxTime = GameConfig.baseTime;
@@ -55,7 +61,7 @@ class GameController extends GetxController {
   void resumeGame() {
     if (isPaused.value) {
       isPaused.value = false;
-      _resetTimer();
+      _resetTimer(isResume: true);
     }
   }
 
@@ -82,11 +88,11 @@ class GameController extends GetxController {
     _resetTimer();
   }
 
-  void _resetTimer() {
+  void _resetTimer({bool isResume = false}) {
     _rushTimer?.cancel();
 
-    // Calculate max time if we are starting a new question (not resuming from pause)
-    if (!isPaused.value) {
+    // Only calculate max time if we are starting a new question (not resuming from pause)
+    if (!isResume) {
       double decayAmount = score.value * GameConfig.timeDecayPerScore;
       _currentMaxTime = (GameConfig.baseTime - decayAmount).clamp(
         GameConfig.minTime,
@@ -118,25 +124,50 @@ class GameController extends GetxController {
     });
   }
 
-  void validateAnswer(bool selectedLeft) {
+  void validateAnswer(bool selectedLeft) async {
     if (isGameOver.value ||
         isReviveCountDown.value ||
         isPaused.value ||
-        startCountdown.value > 0) {
+        startCountdown.value > 0 ||
+        lastAnswerResult.value != null) {
       return;
     }
 
     final isCorrect = currentQuestion.value?.isLeftCorrect == selectedLeft;
+    lastClickWasLeft.value = selectedLeft;
+    lastAnswerResult.value = isCorrect ? AnswerResult.correct : AnswerResult.wrong;
 
     if (isCorrect) {
+      HapticService.correctAnswer();
       score.value++;
+      
+      // Check for level up
       if (score.value % 5 == 0) {
         difficultyLevel.value++;
+        _triggerLevelUp();
       }
+
+      // Small delay to show feedback
+      await Future.delayed(const Duration(milliseconds: 300));
+      lastAnswerResult.value = null;
+      lastClickWasLeft.value = null;
       _generateRound();
     } else {
+      HapticService.wrongAnswer();
+      // Delay before showing game over to see the red/shake
+      await Future.delayed(const Duration(milliseconds: 600));
+      lastAnswerResult.value = null;
+      lastClickWasLeft.value = null;
       _procGameOver();
     }
+  }
+
+  void _triggerLevelUp() {
+    HapticService.levelUp();
+    showLevelUp.value = true;
+    Future.delayed(const Duration(seconds: 2), () {
+      showLevelUp.value = false;
+    });
   }
 
   void _procGameOver() {
