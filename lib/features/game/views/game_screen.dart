@@ -5,12 +5,14 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../controllers/game_controller.dart';
 import 'widgets/answer_button.dart';
+import 'widgets/animated_background.dart';
 import 'widgets/game_over_overlay.dart';
 import 'widgets/pause_overlay.dart';
 import 'widgets/level_up_overlay.dart';
 import 'widgets/question_display.dart';
 import 'widgets/revive_countdown_dialog.dart';
 import 'widgets/rush_timer_bar.dart';
+import 'widgets/vignette_overlay.dart';
 
 class GameScreen extends GetView<GameController> {
   const GameScreen({super.key});
@@ -30,10 +32,12 @@ class GameScreen extends GetView<GameController> {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Padding(
+        body: Stack(
+          children: [
+            const AnimatedBackground(),
+            const VignetteOverlay(),
+            SafeArea(
+              child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 24),
                 child: Column(
                   children: [
@@ -124,53 +128,53 @@ class GameScreen extends GetView<GameController> {
                   ],
                 ),
               ),
+            ),
 
-              Obx(() {
-                if (controller.isWatchingAd.value) {
-                  return ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
+            Obx(() {
+              if (controller.isWatchingAd.value) {
+                return ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                    child: Container(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
-                  );
-                }
+                  ),
+                );
+              }
 
-                if (controller.isReviveCountDown.value) {
-                  return ReviveCountdownDialog(
-                    onRevive: controller.watchReviveAd,
-                    onSkip: controller.skipRevive,
-                  );
-                }
+              if (controller.isReviveCountDown.value) {
+                return ReviveCountdownDialog(
+                  onRevive: controller.watchReviveAd,
+                  onSkip: controller.skipRevive,
+                );
+              }
 
-                if (controller.isGameOver.value &&
-                    !controller.isReviveCountDown.value) {
-                  return const GameOverOverlay();
-                }
+              if (controller.isGameOver.value &&
+                  !controller.isReviveCountDown.value) {
+                return const GameOverOverlay();
+              }
 
-                if (controller.isPaused.value) {
-                  return const PauseOverlay();
-                }
+              if (controller.isPaused.value) {
+                return const PauseOverlay();
+              }
 
-                if (controller.startCountdown.value > 0) {
-                  return _buildStartCountdown();
-                }
+              if (controller.startCountdown.value > 0) {
+                return _buildStartCountdown();
+              }
 
-                return const SizedBox.shrink();
-              }),
+              return const SizedBox.shrink();
+            }),
 
-              // Level Up Overlay
-              Obx(() => controller.showLevelUp.value
-                  ? const LevelUpOverlay()
-                  : const SizedBox.shrink()),
-            ],
-          ),
+            // Level Up Overlay
+            Obx(() => controller.showLevelUp.value
+                ? const LevelUpOverlay()
+                : const SizedBox.shrink()),
+          ],
         ),
       ),
     );
