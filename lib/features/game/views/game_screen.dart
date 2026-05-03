@@ -7,6 +7,7 @@ import '../controllers/game_controller.dart';
 import 'widgets/answer_button.dart';
 import 'widgets/game_over_overlay.dart';
 import 'widgets/pause_overlay.dart';
+import 'widgets/level_up_overlay.dart';
 import 'widgets/question_display.dart';
 import 'widgets/revive_countdown_dialog.dart';
 import 'widgets/rush_timer_bar.dart';
@@ -51,13 +52,24 @@ class GameScreen extends GetView<GameController> {
                         Row(
                           children: [
                             Obx(
-                              () => Text(
-                                '${controller.score.value}',
-                                style: const TextStyle(
-                                  color: AppColors.accent,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              () => TweenAnimationBuilder<double>(
+                                key: ValueKey<int>(controller.score.value),
+                                tween: Tween(begin: 1.0, end: 1.5),
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOutBack,
+                                builder: (context, value, child) {
+                                  return Transform.scale(
+                                    scale: value > 1.25 ? value : 1.0,
+                                    child: Text(
+                                      '${controller.score.value}',
+                                      style: const TextStyle(
+                                        color: AppColors.accent,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -152,6 +164,11 @@ class GameScreen extends GetView<GameController> {
 
                 return const SizedBox.shrink();
               }),
+
+              // Level Up Overlay
+              Obx(() => controller.showLevelUp.value
+                  ? const LevelUpOverlay()
+                  : const SizedBox.shrink()),
             ],
           ),
         ),
