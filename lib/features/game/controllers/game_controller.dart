@@ -20,6 +20,7 @@ class GameController extends GetxController {
   final RxBool isWatchingAd = false.obs;
   final RxBool isNewHighScore = false.obs;
   final RxInt startCountdown = 0.obs;
+  final RxBool isPaused = false.obs;
 
   Timer? _rushTimer;
   double _currentMaxTime = GameConfig.baseTime;
@@ -38,9 +39,24 @@ class GameController extends GetxController {
     isReviveCountDown.value = false;
     isWatchingAd.value = false;
     isNewHighScore.value = false;
+    isPaused.value = false;
     _currentMaxTime = GameConfig.baseTime;
     _adService.resetReviveStatus();
     _startCountdownThenRun(_generateRound);
+  }
+
+  void pauseGame() {
+    if (!isGameOver.value && !isPaused.value && !isReviveCountDown.value && startCountdown.value == 0) {
+      isPaused.value = true;
+      _rushTimer?.cancel();
+    }
+  }
+
+  void resumeGame() {
+    if (isPaused.value) {
+      isPaused.value = false;
+      _resetTimer();
+    }
   }
 
   void _startCountdownThenRun(VoidCallback onComplete) async {
@@ -56,6 +72,7 @@ class GameController extends GetxController {
 
   void resumeGameAfterRevive() {
     isReviveCountDown.value = false;
+    isPaused.value = false;
     _adService.markRevived();
     _startCountdownThenRun(_generateRound);
   }
@@ -68,17 +85,21 @@ class GameController extends GetxController {
   void _resetTimer() {
     _rushTimer?.cancel();
 
-    double decayAmount = score.value * GameConfig.timeDecayPerScore;
-    _currentMaxTime = (GameConfig.baseTime - decayAmount).clamp(
-      GameConfig.minTime,
-      GameConfig.baseTime,
-    );
-    _timeRemaining = _currentMaxTime;
-    currentTimerValue.value = 1.0;
+    // Calculate max time if we are starting a new question (not resuming from pause)
+    if (!isPaused.value) {
+      double decayAmount = score.value * GameConfig.timeDecayPerScore;
+      _currentMaxTime = (GameConfig.baseTime - decayAmount).clamp(
+        GameConfig.minTime,
+        GameConfig.baseTime,
+      );
+      _timeRemaining = _currentMaxTime;
+      currentTimerValue.value = 1.0;
+    }
 
     _rushTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (isGameOver.value ||
           isReviveCountDown.value ||
+          isPaused.value ||
           startCountdown.value > 0) {
         timer.cancel();
         return;
@@ -100,6 +121,7 @@ class GameController extends GetxController {
   void validateAnswer(bool selectedLeft) {
     if (isGameOver.value ||
         isReviveCountDown.value ||
+        isPaused.value ||
         startCountdown.value > 0) {
       return;
     }

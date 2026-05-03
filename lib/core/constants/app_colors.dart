@@ -9,4 +9,7 @@ class AppColors {
   static const Color textMain = Color(0xFF2C3E50); // Dark text for bright bg
   static const Color textMuted = Color(0xFF7F8C8D); // Muted dark text
   static const Color buttonGray = Color(0xFFE0E0E0); // Light gray
+  static const Color success = Color(0xFF4CAF50); // Green for correct
+  static const Color warning = Color(0xFFFF9800); // Orange for timer warning
+  static const Color gold = Color(0xFFFFD700); // Gold for level up
 }
