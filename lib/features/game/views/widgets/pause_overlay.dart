@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/haptic_service.dart';
 import '../../controllers/game_controller.dart';
 
 class PauseOverlay extends GetView<GameController> {
@@ -28,7 +29,10 @@ class PauseOverlay extends GetView<GameController> {
               ),
               const SizedBox(height: 48),
               ElevatedButton.icon(
-                onPressed: controller.resumeGame,
+                onPressed: () {
+                  HapticService.buttonPress();
+                  controller.resumeGame();
+                },
                 icon: const Icon(Icons.play_arrow),
                 label: const Text("RESUME"),
                 style: ElevatedButton.styleFrom(
@@ -45,7 +49,10 @@ class PauseOverlay extends GetView<GameController> {
               ),
               const SizedBox(height: 16),
               TextButton.icon(
-                onPressed: () => Get.offAllNamed('/'),
+                onPressed: () {
+                  HapticService.buttonPress();
+                  Get.offAllNamed('/');
+                },
                 icon: const Icon(Icons.exit_to_app),
                 label: const Text("QUIT"),
                 style: TextButton.styleFrom(

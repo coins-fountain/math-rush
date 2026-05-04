@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:math_rush/core/constants/app_colors.dart';
 import 'package:math_rush/core/services/consent_service.dart';
 import 'package:math_rush/core/services/ad_service.dart';
+import 'package:math_rush/features/credits/bindings/credits_binding.dart';
+import 'package:math_rush/features/credits/views/credits_screen.dart';
 import 'package:math_rush/features/game/bindings/game_binding.dart';
 import 'package:math_rush/features/game/views/game_screen.dart';
 import 'package:math_rush/features/home/bindings/home_binding.dart';
@@ -45,6 +47,11 @@ class MyApp extends StatelessWidget {
           name: '/game',
           page: () => const GameScreen(),
           binding: GameBinding(),
+        ),
+        GetPage(
+          name: '/credits',
+          page: () => const CreditsScreen(),
+          binding: CreditsBinding(),
         ),
       ],
     );

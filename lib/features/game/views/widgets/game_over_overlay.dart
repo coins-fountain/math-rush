@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:confetti/confetti.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/haptic_service.dart';
 import '../../../../core/widgets/banner_ad_widget.dart';
 import '../../controllers/game_controller.dart';
 
@@ -20,7 +21,9 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
     if (controller.isNewHighScore.value) {
       _confettiController.play();
     }
@@ -101,7 +104,10 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
                   }),
                   const SizedBox(height: 32),
                   ElevatedButton.icon(
-                    onPressed: controller.startGame,
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      controller.startGame();
+                    },
                     icon: const Icon(Icons.replay),
                     label: const Text("PLAY AGAIN"),
                     style: ElevatedButton.styleFrom(
@@ -116,6 +122,7 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () {
+                      HapticService.buttonPress();
                       Share.share(
                         'I just scored ${controller.score.value} on Math Rush! 🧠⚡ Can you beat my score?',
                       );
@@ -133,7 +140,10 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
                   ),
                   const SizedBox(height: 12),
                   TextButton.icon(
-                    onPressed: () => Get.offAllNamed('/'),
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      Get.offAllNamed('/');
+                    },
                     icon: const Icon(Icons.home),
                     label: const Text("HOME"),
                     style: TextButton.styleFrom(

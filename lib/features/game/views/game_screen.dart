@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/haptic_service.dart';
 import '../controllers/game_controller.dart';
 import 'widgets/answer_button.dart';
 import 'widgets/animated_background.dart';
@@ -38,7 +39,10 @@ class GameScreen extends GetView<GameController> {
             const VignetteOverlay(),
             SafeArea(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 24),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 24,
+                ),
                 child: Column(
                   children: [
                     Row(
@@ -78,8 +82,14 @@ class GameScreen extends GetView<GameController> {
                             ),
                             const SizedBox(width: 16),
                             IconButton(
-                              onPressed: controller.pauseGame,
-                              icon: const Icon(Icons.pause_circle_filled, size: 32),
+                              onPressed: () {
+                                HapticService.buttonPress();
+                                controller.pauseGame();
+                              },
+                              icon: const Icon(
+                                Icons.pause_circle_filled,
+                                size: 32,
+                              ),
                               color: AppColors.primary,
                             ),
                           ],
@@ -99,7 +109,9 @@ class GameScreen extends GetView<GameController> {
                     Obx(() {
                       final question = controller.currentQuestion.value;
                       if (question == null) return const SizedBox.shrink();
-                      return QuestionDisplay(questionText: question.questionText);
+                      return QuestionDisplay(
+                        questionText: question.questionText,
+                      );
                     }),
 
                     const Spacer(),
@@ -171,9 +183,11 @@ class GameScreen extends GetView<GameController> {
             }),
 
             // Level Up Overlay
-            Obx(() => controller.showLevelUp.value
-                ? const LevelUpOverlay()
-                : const SizedBox.shrink()),
+            Obx(
+              () => controller.showLevelUp.value
+                  ? const LevelUpOverlay()
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
@@ -203,9 +217,7 @@ class GameScreen extends GetView<GameController> {
                       fontWeight: FontWeight.w900,
                       shadows: [
                         Shadow(
-                          color: AppColors.primary.withValues(
-                            alpha: 0.5,
-                          ),
+                          color: AppColors.primary.withValues(alpha: 0.5),
                           blurRadius: 30,
                         ),
                         const Shadow(
@@ -229,17 +241,23 @@ class GameScreen extends GetView<GameController> {
     Get.dialog(
       AlertDialog(
         title: const Text("Quit Game?"),
-        content: const Text("Are you sure you want to quit this game? Your current progress will be lost."),
+        content: const Text(
+          "Are you sure you want to quit this game? Your current progress will be lost.",
+        ),
         actions: [
           TextButton(
             onPressed: () {
+              HapticService.buttonPress();
               Get.back();
               controller.resumeGame();
             },
             child: const Text("CANCEL"),
           ),
           ElevatedButton(
-            onPressed: () => Get.offAllNamed('/'),
+            onPressed: () {
+              HapticService.buttonPress();
+              Get.offAllNamed('/');
+            },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             child: const Text("QUIT", style: TextStyle(color: Colors.white)),
           ),

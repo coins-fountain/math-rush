@@ -7,6 +7,7 @@ import '../../home/controllers/home_controller.dart';
 import '../logic/question_generator.dart';
 import '../../../../core/services/ad_service.dart';
 import '../../../../core/services/haptic_service.dart';
+import '../../../../core/services/sound_service.dart';
 import '../models/answer_result.dart';
 
 class GameController extends GetxController {
@@ -47,12 +48,16 @@ class GameController extends GetxController {
     isNewHighScore.value = false;
     isPaused.value = false;
     _currentMaxTime = GameConfig.baseTime;
+    SoundService.stopAll();
     _adService.resetReviveStatus();
     _startCountdownThenRun(_generateRound);
   }
 
   void pauseGame() {
-    if (!isGameOver.value && !isPaused.value && !isReviveCountDown.value && startCountdown.value == 0) {
+    if (!isGameOver.value &&
+        !isPaused.value &&
+        !isReviveCountDown.value &&
+        startCountdown.value == 0) {
       isPaused.value = true;
       _rushTimer?.cancel();
     }
@@ -69,6 +74,7 @@ class GameController extends GetxController {
     currentQuestion.value = null;
     for (int i = 3; i > 0; i--) {
       startCountdown.value = i;
+      SoundService.playCountdownTick();
       await Future.delayed(const Duration(seconds: 1));
       if (isGameOver.value) return; // Prevent if game exited early
     }
@@ -135,12 +141,15 @@ class GameController extends GetxController {
 
     final isCorrect = currentQuestion.value?.isLeftCorrect == selectedLeft;
     lastClickWasLeft.value = selectedLeft;
-    lastAnswerResult.value = isCorrect ? AnswerResult.correct : AnswerResult.wrong;
+    lastAnswerResult.value = isCorrect
+        ? AnswerResult.correct
+        : AnswerResult.wrong;
 
     if (isCorrect) {
       HapticService.correctAnswer();
+      SoundService.playCorrect();
       score.value++;
-      
+
       // Check for level up
       if (score.value % 5 == 0) {
         difficultyLevel.value++;
@@ -154,6 +163,7 @@ class GameController extends GetxController {
       _generateRound();
     } else {
       HapticService.wrongAnswer();
+      SoundService.playWrong();
       // Delay before showing game over to see the red/shake
       await Future.delayed(const Duration(milliseconds: 600));
       lastAnswerResult.value = null;
@@ -164,6 +174,7 @@ class GameController extends GetxController {
 
   void _triggerLevelUp() {
     HapticService.levelUp();
+    SoundService.playLevelUp();
     showLevelUp.value = true;
     Future.delayed(const Duration(seconds: 2), () {
       showLevelUp.value = false;
@@ -171,7 +182,10 @@ class GameController extends GetxController {
   }
 
   void _procGameOver() {
+    if (isGameOver.value || isReviveCountDown.value) return;
+
     _rushTimer?.cancel();
+    SoundService.playGameOver();
 
     if (!_adService.hasRevived) {
       isReviveCountDown.value = true;
@@ -218,6 +232,7 @@ class GameController extends GetxController {
   @override
   void onClose() {
     _rushTimer?.cancel();
+    SoundService.stopAll();
     super.onClose();
   }
 }

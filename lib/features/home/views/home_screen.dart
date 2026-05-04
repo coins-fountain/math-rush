@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/haptic_service.dart';
 import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/home_controller.dart';
 
@@ -15,6 +16,21 @@ class HomeScreen extends GetView<HomeController> {
         child: SafeArea(
           child: Stack(
             children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: IconButton(
+                    tooltip: 'Audio Credits',
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      Get.toNamed('/credits');
+                    },
+                    icon: const Icon(Icons.info_outline),
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -92,7 +108,10 @@ class HomeScreen extends GetView<HomeController> {
                     ),
                     const SizedBox(height: 48),
                     ElevatedButton(
-                      onPressed: () => Get.toNamed('/game'),
+                      onPressed: () {
+                        HapticService.buttonPress();
+                        Get.toNamed('/game');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,

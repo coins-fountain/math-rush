@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/game_config.dart';
+import '../../../../core/services/haptic_service.dart';
 
 class ReviveCountdownDialog extends StatelessWidget {
   const ReviveCountdownDialog({
@@ -87,7 +88,10 @@ class ReviveCountdownDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 48),
                   ElevatedButton.icon(
-                    onPressed: onRevive,
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      onRevive();
+                    },
                     icon: const Icon(Icons.play_circle_fill, size: 28),
                     label: const Text('WATCH TO REVIVE'),
                     style: ElevatedButton.styleFrom(
@@ -111,7 +115,10 @@ class ReviveCountdownDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: onSkip,
+                    onPressed: () {
+                      HapticService.buttonPress();
+                      onSkip();
+                    },
                     child: Text(
                       'NO THANKS',
                       style: TextStyle(
